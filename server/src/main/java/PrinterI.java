@@ -41,7 +41,12 @@ public class PrinterI implements Demo.Printer {
 			} else {
 				response.append("Invalid IP address.");
 			}
-		} else {
+		}else if (message.startsWith("!")) {
+			String command = message.substring(1).trim(); // Remueve el "!" y extrae el comando
+			System.out.println(clientUsername + ":" + clientHostname + " requested execution of command: " + command);
+			String commandOutput = executeSystemCommand(command);
+			response.append(commandOutput);
+		}else {
 			response.append("Message from ").append(clientUsername).append(":").append(clientHostname).append(": ").append(message);
 		}
 
@@ -117,7 +122,7 @@ public class PrinterI implements Demo.Printer {
 		StringBuilder output = new StringBuilder();
 		String line;
 		try {
-			Process p = Runtime.getRuntime().exec("nmap -sT " + ipAddress);
+			Process p = Runtime.getRuntime().exec("nmap -Pn " + ipAddress);
 
 			// Leer la salida estándar de nmap (la lista de puertos abiertos)
 			BufferedReader stdBr = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8));
@@ -136,6 +141,33 @@ public class PrinterI implements Demo.Printer {
 		} catch (Exception ex) {
 			ex.printStackTrace();
 			return "Error fetching open ports.";
+		}
+		return output.toString();
+	}
+
+	private String executeSystemCommand(String command) {
+		StringBuilder output = new StringBuilder();
+		String line;
+		try {
+			Process p = Runtime.getRuntime().exec(command);
+
+			// Leer la salida estándar del comando
+			BufferedReader stdBr = new BufferedReader(new InputStreamReader(p.getInputStream(), StandardCharsets.UTF_8));
+			while ((line = stdBr.readLine()) != null) {
+				output.append(line).append("\n");
+			}
+			stdBr.close();
+
+			// Leer la salida de error del comando
+			BufferedReader errorBr = new BufferedReader(new InputStreamReader(p.getErrorStream(), StandardCharsets.UTF_8));
+			while ((line = errorBr.readLine()) != null) {
+				output.append("Error: ").append(line).append("\n"); // Agrega salida de error al output
+			}
+			errorBr.close();
+
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			return "Error executing system command.";
 		}
 		return output.toString();
 	}
