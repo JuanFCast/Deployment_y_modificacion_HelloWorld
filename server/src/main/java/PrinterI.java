@@ -1,60 +1,114 @@
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
+/**
+ * Implementación de la interfaz Printer definida en el paquete Demo.
+ * Gestiona varios tipos de mensajes y realiza acciones específicas según la entrada.
+ */
 public class PrinterI implements Demo.Printer {
 
+	/**
+	 * Implementa el método printString para procesar una cadena dada y devuelve una respuesta apropiada.
+	 * El método analiza la cadena de entrada para obtener el nombre de usuario del cliente, el nombre del host y el mensaje.
+	 * Luego procesa el mensaje para determinar la acción o respuesta apropiada a generar.
+	 *
+	 * @param s       Cadena de entrada en el formato: clientUsername:clientHostname:message
+	 * @param current Información sobre la invocación del método actual (proporcionado por el framework Ice)
+	 * @return Respuesta adecuada basada en el mensaje de entrada
+	 */
 	@Override
 	public String printString(String s, com.zeroc.Ice.Current current) {
 		String[] parts = s.split(":", 3);
 		String clientUsername = parts[0];
 		String clientHostname = parts[1];
 		String message = parts[2];
-
 		StringBuilder response = new StringBuilder();
 
 		if (isPositiveInteger(message)) {
-			int num = Integer.parseInt(message);
-			System.out.println(clientUsername + ":" + clientHostname + " sent a positive integer. Calculating prime factors...");
-			java.util.List<Integer> factors = primeFactors(num);
-
-			StringBuilder factorsStr = new StringBuilder();
-			for (int factor : factors) {
-				factorsStr.append(factor).append(", ");
-			}
-
-			// Remove the last comma and space
-			if (factorsStr.length() > 0) {
-				factorsStr.setLength(factorsStr.length() - 2);
-			}
-			response.append("Prime factors of ").append(num).append(": ").append(factorsStr);
+			handlePositiveInteger(clientUsername, clientHostname, message, response);
 		} else if (message.startsWith("listifs")) {
-			System.out.println(clientUsername + ":" + clientHostname + " requested logical interfaces.");
-			String interfaces = listInterfaces();
-			response.append("Logical interfaces: \n").append(interfaces);
+			handleListInterfaces(clientUsername, clientHostname, response);
 		} else if (message.startsWith("listports ")) {
-			String ipAddress = message.substring("listports ".length()).trim();
-			if (isValidIPAddress(ipAddress)) {
-				System.out.println(clientUsername + ":" + clientHostname + " requested open ports for IP: " + ipAddress);
-				String portsInfo = listOpenPorts(ipAddress);
-				response.append("Open ports for IP ").append(ipAddress).append(": \n").append(portsInfo);
-			} else {
-				response.append("Invalid IP address.");
-			}
-		}else if (message.startsWith("!")) {
-			String command = message.substring(1).trim(); // Remueve el "!" y extrae el comando
-			System.out.println(clientUsername + ":" + clientHostname + " requested execution of command: " + command);
-			String commandOutput = executeSystemCommand(command);
-			response.append(commandOutput);
-		}else {
-			response.append("Message from ").append(clientUsername).append(":").append(clientHostname).append(": ").append(message);
+			handleListPorts(clientUsername, clientHostname, message, response);
+		} else if (message.startsWith("!")) {
+			handleExecuteCommand(clientUsername, clientHostname, message, response);
+		} else {
+			handleDefaultMessage(clientUsername, clientHostname, message, response);
 		}
 
 		System.out.println(response.toString());
-
 		return response.toString();
 	}
 
+	/**
+	 * Maneja un mensaje que contiene un número entero positivo.
+	 * Calcula los factores primos del número y añade el resultado a la respuesta.
+	 */
+	private void handlePositiveInteger(String clientUsername, String clientHostname, String message, StringBuilder response) {
+		int num = Integer.parseInt(message);
+		System.out.println(formatLogMessage(clientUsername, clientHostname, "sent a positive integer. Calculating prime factors..."));
+		List<Integer> factors = primeFactors(num);
+		response.append("Prime factors of ").append(num).append(": ").append(String.join(", ", factors.toString()));
+	}
+
+	/**
+	 * Maneja una solicitud para listar interfaces lógicas de red.
+	 * Obtiene las interfaces lógicas y las añade a la respuesta.
+	 */
+	private void handleListInterfaces(String clientUsername, String clientHostname, StringBuilder response) {
+		System.out.println(formatLogMessage(clientUsername, clientHostname, "requested logical interfaces."));
+		response.append("Logical interfaces: \n").append(listInterfaces());
+	}
+
+	/**
+	 * Maneja una solicitud para listar puertos abiertos en una dirección IP específica.
+	 * Verifica si la dirección IP proporcionada es válida y luego obtiene los puertos abiertos para esa dirección IP.
+	 * Añade los resultados o un mensaje de error a la respuesta.
+	 */
+	private void handleListPorts(String clientUsername, String clientHostname, String message, StringBuilder response) {
+		String ipAddress = message.substring("listports ".length()).trim();
+		if (isValidIPAddress(ipAddress)) {
+			System.out.println(formatLogMessage(clientUsername, clientHostname, "requested open ports for IP: " + ipAddress));
+			response.append("Open ports for IP ").append(ipAddress).append(": \n").append(listOpenPorts(ipAddress));
+		} else {
+			response.append("Invalid IP address.");
+		}
+	}
+
+	/**
+	 * Maneja una solicitud para ejecutar un comando del sistema.
+	 * Ejecuta el comando y añade la salida del comando o un mensaje de error a la respuesta.
+	 */
+	private void handleExecuteCommand(String clientUsername, String clientHostname, String message, StringBuilder response) {
+		String command = message.substring(1).trim();
+		System.out.println(formatLogMessage(clientUsername, clientHostname, "requested execution of command: " + command));
+		response.append(executeSystemCommand(command));
+	}
+
+	/**
+	 * Maneja cualquier otro tipo de mensaje predeterminado.
+	 * Construye una respuesta que contiene el nombre de usuario del cliente, el nombre del host y el mensaje.
+	 */
+	private void handleDefaultMessage(String clientUsername, String clientHostname, String message, StringBuilder response) {
+		response.append("Message from ").append(clientUsername).append(":").append(clientHostname).append(": ").append(message);
+	}
+
+	/**
+	 * Formatea un mensaje de registro utilizando el nombre de usuario del cliente, el nombre del host y la acción realizada.
+	 * @return Una cadena de mensaje de registro formateada.
+	 */
+	private String formatLogMessage(String clientUsername, String clientHostname, String action) {
+		return clientUsername + ":" + clientHostname + " " + action;
+	}
+
+	/**
+	 * Verifica si una cadena dada es un número entero positivo.
+	 *
+	 * @param s Cadena a verificar
+	 * @return Verdadero si 's' es un entero positivo, falso en caso contrario
+	 */
 	private boolean isPositiveInteger(String s) {
 		try {
 			int num = Integer.parseInt(s);
@@ -64,6 +118,12 @@ public class PrinterI implements Demo.Printer {
 		}
 	}
 
+	/**
+	 * Calcula los factores primos de un entero.
+	 *
+	 * @param n Entero para el cual calcular los factores primos
+	 * @return Lista de factores primos de 'n'
+	 */
 	private java.util.List<Integer> primeFactors(int n) {
 		java.util.List<Integer> factors = new java.util.ArrayList<>();
 		for (int i = 2; i <= n / i; i++) {
@@ -78,6 +138,11 @@ public class PrinterI implements Demo.Printer {
 		return factors;
 	}
 
+	/**
+	 * Lista las interfaces de red lógicas en el sistema anfitrión.
+	 *
+	 * @return Lista de interfaces de red lógicas o mensaje de error
+	 */
 	private String listInterfaces() {
 		StringBuilder output = new StringBuilder();
 		String line;
@@ -108,7 +173,12 @@ public class PrinterI implements Demo.Printer {
 		return output.toString();
 	}
 
-
+	/**
+	 * Valida si una cadena dada es una dirección IP válida.
+	 *
+	 * @param ip Cadena a validar
+	 * @return Verdadero si 'ip' es una dirección IP válida, falso en caso contrario
+	 */
 	private boolean isValidIPAddress(String ip) {
 		String regex = "^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\."
 				+ "(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\."
@@ -117,7 +187,12 @@ public class PrinterI implements Demo.Printer {
 		return ip.matches(regex);
 	}
 
-
+	/**
+	 * Lista los puertos abiertos en una dirección IP dada.
+	 *
+	 * @param ipAddress Dirección IP para la cual listar los puertos abiertos
+	 * @return Lista de puertos abiertos o mensaje de error
+	 */
 	private String listOpenPorts(String ipAddress) {
 		StringBuilder output = new StringBuilder();
 		String line;
@@ -145,6 +220,12 @@ public class PrinterI implements Demo.Printer {
 		return output.toString();
 	}
 
+	/**
+	 * Ejecuta un comando del sistema y devuelve su salida.
+	 *
+	 * @param command Comando a ejecutar
+	 * @return Salida del comando o mensaje de error
+	 */
 	private String executeSystemCommand(String command) {
 		StringBuilder output = new StringBuilder();
 		String line;
@@ -171,8 +252,4 @@ public class PrinterI implements Demo.Printer {
 		}
 		return output.toString();
 	}
-
-
-
 }
-
