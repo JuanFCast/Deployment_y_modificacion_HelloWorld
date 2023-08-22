@@ -64,18 +64,15 @@ public class PrinterI implements Demo.Printer {
 
 	/**
 	 * Maneja una solicitud para listar puertos abiertos en una dirección IP específica.
-	 * Verifica si la dirección IP proporcionada es válida y luego obtiene los puertos abiertos para esa dirección IP.
-	 * Añade los resultados o un mensaje de error a la respuesta.
+	 * Obtiene directamente los puertos abiertos para la dirección IP proporcionada sin realizar verificación previa.
+	 * Añade los resultados a la respuesta.
 	 */
 	private void handleListPorts(String clientUsername, String clientHostname, String message, StringBuilder response) {
 		String ipAddress = message.substring("listports ".length()).trim();
-		if (isValidIPAddress(ipAddress)) {
-			System.out.println(formatLogMessage(clientUsername, clientHostname, "requested open ports for IP: " + ipAddress));
-			response.append("Open ports for IP ").append(ipAddress).append(": \n").append(listOpenPorts(ipAddress));
-		} else {
-			response.append("Invalid IP address.");
-		}
+		System.out.println(formatLogMessage(clientUsername, clientHostname, "requested open ports for IP: " + ipAddress));
+		response.append("Open ports for IP ").append(ipAddress).append(": \n").append(listOpenPorts(ipAddress));
 	}
+
 
 	/**
 	 * Maneja una solicitud para ejecutar un comando del sistema.
@@ -171,20 +168,6 @@ public class PrinterI implements Demo.Printer {
 			return "Error fetching logical interfaces.";
 		}
 		return output.toString();
-	}
-
-	/**
-	 * Valida si una cadena dada es una dirección IP válida.
-	 *
-	 * @param ip Cadena a validar
-	 * @return Verdadero si 'ip' es una dirección IP válida, falso en caso contrario
-	 */
-	private boolean isValidIPAddress(String ip) {
-		String regex = "^(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\."
-				+ "(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\."
-				+ "(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\."
-				+ "(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)$";
-		return ip.matches(regex);
 	}
 
 	/**

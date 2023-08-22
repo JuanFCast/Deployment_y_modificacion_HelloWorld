@@ -34,20 +34,25 @@ public class Client {
 
             switch (option){
                 case 1:
-                    System.out.println(send(twoway, scanner));
+                    send(twoway, scanner);
+                    break;
                 case 2:
                     System.out.println(evaluateThroughput(twoway, scanner));
+                    break;
                 case 3:
                     System.out.println(evaluateResponseTime(twoway));
+                    break;
                 case 4:
                     System.out.println(evaluateMissingRate(twoway, scanner));
+                    break;
                 case 5:
                     System.out.println(evaluateUnprocessedRate(twoway, scanner));
+                    break;
             }
         }while(option >= 1 && option <=5);
     }
 
-    private static String send(Demo.PrinterPrx twoway, Scanner scanner){
+    private static void send(Demo.PrinterPrx twoway, Scanner scanner){
         if (twoway == null) {
             throw new Error("Invalid proxy");
         }
@@ -65,10 +70,8 @@ public class Client {
 
             String formattedMessage = username + ":" + hostname + ":" + message;
             String response = twoway.printString(formattedMessage);
-            return "Server Response: " + response;
+            System.out.println("Server Response: " + response);
         }
-
-        return null;
     }
 
     private static String send(Demo.PrinterPrx twoway, String message) throws Exception{
